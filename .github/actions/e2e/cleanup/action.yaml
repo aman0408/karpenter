@@ -21,7 +21,7 @@ inputs:
 runs:
   using: "composite"
   steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
       with:
         ref: ${{ inputs.git_ref }}
     - uses: ./.github/actions/e2e/install-eksctl
@@ -31,14 +31,14 @@ runs:
       shell: bash
       run: |
         eksctl delete cluster --name ${{ inputs.cluster_name }} --timeout 60m --wait || true
-    - uses: actions/setup-go@v4
+    - uses: actions/setup-go@0c52d547c9bc32b1aa3301fd7a9cb496313a4491 # v5.0.0
       with:
-        go-version-file: test/hack/cleanup/go.mod
-        cache-dependency-path: test/hack/cleanup/go.sum
+        go-version-file: test/hack/resource/go.mod
+        cache-dependency-path: test/hack/resource/go.sum
         check-latest: true
         cache: false
     - name: "Run cleanup script"
       run: |
         go run main.go ${{ inputs.cluster_name }}
-      working-directory: ./test/hack/cleanup
+      working-directory: ./test/hack/resource/clean
       shell: bash

@@ -21,25 +21,28 @@ import (
 	"sync"
 	"time"
 
-	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/gomega"
 	"github.com/samber/lo"
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/util/uuid"
 	"knative.dev/pkg/ptr"
 
-	corev1beta1 "github.com/aws/karpenter-core/pkg/apis/v1beta1"
-	"github.com/aws/karpenter-core/pkg/test"
-	"github.com/aws/karpenter/pkg/apis/v1beta1"
-	"github.com/aws/karpenter/pkg/controllers/interruption/messages"
-	"github.com/aws/karpenter/pkg/controllers/interruption/messages/scheduledchange"
-	awstest "github.com/aws/karpenter/pkg/test"
-	"github.com/aws/karpenter/pkg/utils"
-	"github.com/aws/karpenter/test/pkg/debug"
-	"github.com/aws/karpenter/test/pkg/environment/aws"
+	corev1beta1 "sigs.k8s.io/karpenter/pkg/apis/v1beta1"
+	"sigs.k8s.io/karpenter/pkg/test"
+
+	"github.com/aws/karpenter-provider-aws/pkg/apis/v1beta1"
+	"github.com/aws/karpenter-provider-aws/pkg/controllers/interruption/messages"
+	"github.com/aws/karpenter-provider-aws/pkg/controllers/interruption/messages/scheduledchange"
+	awstest "github.com/aws/karpenter-provider-aws/pkg/test"
+	"github.com/aws/karpenter-provider-aws/pkg/utils"
+	"github.com/aws/karpenter-provider-aws/test/pkg/debug"
+	"github.com/aws/karpenter-provider-aws/test/pkg/environment/aws"
+
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 )
 
 const (
@@ -49,7 +52,6 @@ const (
 	expirationValue       = "expiration"
 	noExpirationValue     = "noExpiration"
 	driftValue            = "drift"
-	noDriftValue          = "noDrift"
 )
 
 const (
@@ -362,6 +364,7 @@ var _ = Describe("Deprovisioning", Label(debug.NoWatch), Label(debug.NoEvents), 
 			env.MeasureDeprovisioningDurationFor(func() {
 				By("kicking off deprovisioning by setting the consolidation enabled value on the nodePool")
 				nodePool.Spec.Disruption.ConsolidationPolicy = corev1beta1.ConsolidationPolicyWhenUnderutilized
+				nodePool.Spec.Disruption.ConsolidateAfter = nil
 				env.ExpectUpdated(nodePool)
 
 				env.EventuallyExpectDeletedNodeCount("==", expectedNodeCount)
@@ -415,6 +418,7 @@ var _ = Describe("Deprovisioning", Label(debug.NoWatch), Label(debug.NoEvents), 
 			env.MeasureDeprovisioningDurationFor(func() {
 				By("kicking off deprovisioning by setting the consolidation enabled value on the nodePool")
 				nodePool.Spec.Disruption.ConsolidationPolicy = corev1beta1.ConsolidationPolicyWhenUnderutilized
+				nodePool.Spec.Disruption.ConsolidateAfter = nil
 				env.ExpectUpdated(nodePool)
 
 				env.EventuallyExpectDeletedNodeCount("==", int(float64(expectedNodeCount)*0.8))
@@ -480,6 +484,7 @@ var _ = Describe("Deprovisioning", Label(debug.NoWatch), Label(debug.NoEvents), 
 				// The nodePool defaults to a larger instance type than we need so enabling consolidation and making
 				// the requirements wide-open should cause deletes and increase our utilization on the cluster
 				nodePool.Spec.Disruption.ConsolidationPolicy = corev1beta1.ConsolidationPolicyWhenUnderutilized
+				nodePool.Spec.Disruption.ConsolidateAfter = nil
 				nodePool.Spec.Template.Spec.Requirements = lo.Reject(nodePool.Spec.Template.Spec.Requirements, func(r v1.NodeSelectorRequirement, _ int) bool {
 					return r.Key == v1beta1.LabelInstanceSize
 				})
@@ -595,9 +600,16 @@ var _ = Describe("Deprovisioning", Label(debug.NoWatch), Label(debug.NoEvents), 
 				nodePool.Spec.Disruption.ExpireAfter.Duration = ptr.Duration(0)
 
 				noExpireNodePool := test.NodePool(*nodePool.DeepCopy())
+
+				// Disable Expiration
+				noExpireNodePool.Spec.Disruption.ConsolidateAfter = &corev1beta1.NillableDuration{}
+				noExpireNodePool.Spec.Disruption.ExpireAfter.Duration = nil
+
+				noExpireNodePool.ObjectMeta = metav1.ObjectMeta{Name: test.RandomName()}
 				noExpireNodePool.Spec.Template.Spec.Kubelet = &corev1beta1.KubeletConfiguration{
 					MaxPods: lo.ToPtr[int32](int32(maxPodDensity)),
 				}
+				noExpireNodePool.Spec.Limits = nil
 				env.ExpectCreatedOrUpdated(nodePool, noExpireNodePool)
 
 				env.EventuallyExpectDeletedNodeCount("==", expectedNodeCount)

@@ -240,6 +240,11 @@ func (in *EC2NodeClassSpec) DeepCopyInto(out *EC2NodeClassSpec) {
 		*out = new(string)
 		**out = **in
 	}
+	if in.InstanceProfile != nil {
+		in, out := &in.InstanceProfile, &out.InstanceProfile
+		*out = new(string)
+		**out = **in
+	}
 	if in.Tags != nil {
 		in, out := &in.Tags, &out.Tags
 		*out = make(map[string]string, len(*in))
@@ -272,37 +277,6 @@ func (in *EC2NodeClassSpec) DeepCopyInto(out *EC2NodeClassSpec) {
 		in, out := &in.Context, &out.Context
 		*out = new(string)
 		**out = **in
-	}
-	if in.LaunchTemplateName != nil {
-		in, out := &in.LaunchTemplateName, &out.LaunchTemplateName
-		*out = new(string)
-		**out = **in
-	}
-	if in.InstanceProfile != nil {
-		in, out := &in.InstanceProfile, &out.InstanceProfile
-		*out = new(string)
-		**out = **in
-	}
-	if in.OriginalSubnetSelector != nil {
-		in, out := &in.OriginalSubnetSelector, &out.OriginalSubnetSelector
-		*out = make(map[string]string, len(*in))
-		for key, val := range *in {
-			(*out)[key] = val
-		}
-	}
-	if in.OriginalSecurityGroupSelector != nil {
-		in, out := &in.OriginalSecurityGroupSelector, &out.OriginalSecurityGroupSelector
-		*out = make(map[string]string, len(*in))
-		for key, val := range *in {
-			(*out)[key] = val
-		}
-	}
-	if in.OriginalAMISelector != nil {
-		in, out := &in.OriginalAMISelector, &out.OriginalAMISelector
-		*out = make(map[string]string, len(*in))
-		for key, val := range *in {
-			(*out)[key] = val
-		}
 	}
 }
 

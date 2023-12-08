@@ -18,8 +18,6 @@ import (
 	"testing"
 	"time"
 
-	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/gomega"
 	"github.com/samber/lo"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -31,11 +29,15 @@ import (
 
 	"github.com/aws/aws-sdk-go/service/ssm"
 
-	corev1beta1 "github.com/aws/karpenter-core/pkg/apis/v1beta1"
-	"github.com/aws/karpenter/pkg/apis/v1beta1"
-	"github.com/aws/karpenter/test/pkg/environment/aws"
+	corev1beta1 "sigs.k8s.io/karpenter/pkg/apis/v1beta1"
 
-	coretest "github.com/aws/karpenter-core/pkg/test"
+	"github.com/aws/karpenter-provider-aws/pkg/apis/v1beta1"
+	"github.com/aws/karpenter-provider-aws/test/pkg/environment/aws"
+
+	coretest "sigs.k8s.io/karpenter/pkg/test"
+
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 )
 
 var env *aws.Environment
@@ -50,7 +52,7 @@ func TestExpiration(t *testing.T) {
 	AfterSuite(func() {
 		env.Stop()
 	})
-	RunSpecs(t, "Beta/Expiration")
+	RunSpecs(t, "Expiration")
 }
 
 var _ = BeforeEach(func() {
@@ -229,12 +231,12 @@ var _ = Describe("Expiration", func() {
 				}
 			}).Should(Succeed())
 
-			// Expect nodes To get cordoned
-			cordonedNodes := env.EventuallyExpectCordonedNodeCount("==", 1)
+			// Expect nodes To get tainted
+			taintedNodes := env.EventuallyExpectTaintedNodeCount("==", 1)
 
-			// Expire should fail and the original node should be uncordoned
+			// Expire should fail and the original node should be untainted
 			// TODO: reduce timeouts when deprovisioning waits are factored out
-			env.EventuallyExpectNodesUncordonedWithTimeout(11*time.Minute, cordonedNodes...)
+			env.EventuallyExpectNodesUntaintedWithTimeout(11*time.Minute, taintedNodes...)
 
 			// The nodeclaims that never registers will be removed
 			Eventually(func(g Gomega) {
@@ -294,12 +296,12 @@ var _ = Describe("Expiration", func() {
 				}
 			}).Should(Succeed())
 
-			// Expect nodes To be cordoned
-			cordonedNodes := env.EventuallyExpectCordonedNodeCount("==", 1)
+			// Expect nodes To be tainted
+			taintedNodes := env.EventuallyExpectTaintedNodeCount("==", 1)
 
-			// Expire should fail and original node should be uncordoned and no NodeClaims should be removed
+			// Expire should fail and original node should be untainted and no NodeClaims should be removed
 			// TODO: reduce timeouts when deprovisioning waits are factored out
-			env.EventuallyExpectNodesUncordonedWithTimeout(11*time.Minute, cordonedNodes...)
+			env.EventuallyExpectNodesUntaintedWithTimeout(11*time.Minute, taintedNodes...)
 
 			// Expect that the new NodeClaim/Node is kept around after the un-cordon
 			nodeList := &v1.NodeList{}

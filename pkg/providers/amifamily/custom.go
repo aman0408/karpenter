@@ -17,11 +17,12 @@ package amifamily
 import (
 	v1 "k8s.io/api/core/v1"
 
-	corev1beta1 "github.com/aws/karpenter-core/pkg/apis/v1beta1"
-	"github.com/aws/karpenter-core/pkg/cloudprovider"
-	"github.com/aws/karpenter/pkg/apis/v1beta1"
+	corev1beta1 "sigs.k8s.io/karpenter/pkg/apis/v1beta1"
+	"sigs.k8s.io/karpenter/pkg/cloudprovider"
 
-	"github.com/aws/karpenter/pkg/providers/amifamily/bootstrap"
+	"github.com/aws/karpenter-provider-aws/pkg/apis/v1beta1"
+
+	"github.com/aws/karpenter-provider-aws/pkg/providers/amifamily/bootstrap"
 )
 
 type Custom struct {
@@ -38,7 +39,7 @@ func (c Custom) UserData(_ *corev1beta1.KubeletConfiguration, _ []v1.Taint, _ ma
 	}
 }
 
-func (c Custom) DefaultAMIs(_ string, _ bool) []DefaultAMIOutput {
+func (c Custom) DefaultAMIs(_ string) []DefaultAMIOutput {
 	return nil
 }
 
